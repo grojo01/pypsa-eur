@@ -895,6 +895,47 @@ def attach_hydro(
             efficiency_store=0.0,
             cyclic_state_of_charge=True,
             inflow=inflow_t.loc[:, hydro.index],
+            # When retrofit is enabled, make p_nom a variable so it can be
+            # set to 0 by the capacity conservation constraint in solve_network
+            p_nom_extendable=params.get("retrofit_to_phs", {}).get("enable", False),
+            p_nom_max=hydro["p_nom"],
+            p_nom_min=0.0,
+        )
+
+    # --- Hydro-to-PHS retrofit units ("retrofitted PHS") ---
+    retrofit_config = params.get("retrofit_to_phs", {})
+    if retrofit_config.get("enable", False) and "hydro" in carriers and not hydro.empty:
+        retrofit_capital_cost = retrofit_config["capital_cost"]  # EUR/MW/a
+        phs_efficiency = np.sqrt(costs.at["PHS", "efficiency"])
+        retrofit_max_hours = retrofit_config.get("max_hours", None)
+
+        # Use hydro's max_hours if not specified
+        if retrofit_max_hours is None:
+            retrofit_max_hours = hydro_max_hours
+
+        n.add("Carrier", "retrofitted PHS")
+
+        n.add(
+            "StorageUnit",
+            hydro.index,
+            suffix=" retrofitted PHS",
+            carrier="retrofitted PHS",
+            bus=hydro["bus"],
+            p_nom=0,                         # starts at 0, extendable
+            p_nom_extendable=True,
+            p_nom_max=hydro["p_nom"],        # can't exceed original hydro capacity
+            max_hours=retrofit_max_hours,
+            capital_cost=retrofit_capital_cost,
+            marginal_cost=costs.at["PHS", "marginal_cost"],
+            efficiency_store=phs_efficiency,
+            efficiency_dispatch=phs_efficiency,
+            cyclic_state_of_charge=True,
+            inflow=inflow_t.loc[:, hydro.index],  # inherits natural inflow
+        )
+
+        logger.info(
+            f"Added {len(hydro)} 'retrofitted PHS' units "
+            f"with capital_cost={retrofit_capital_cost} EUR/MW/a"
         )
 
 
