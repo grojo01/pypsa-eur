@@ -851,7 +851,6 @@ def attach_hydro(
             max_hours_country = (
                 e_missing / hydro.loc[missing_mh_i].groupby("country").p_nom.sum()
             )
-
         elif hydro_max_hours == "estimate_by_large_installations":
             max_hours_country = (
                 hydro_stats["E_store[TWh]"] * 1e3 / hydro_stats["p_nom_discharge[GW]"]
@@ -905,7 +904,10 @@ def attach_hydro(
     # --- Hydro-to-PHS retrofit units ("retrofitted PHS") ---
     retrofit_config = params.get("retrofit_to_phs", {})
     if retrofit_config.get("enable", False) and "hydro" in carriers and not hydro.empty:
-        retrofit_capital_cost = retrofit_config["capital_cost"]  # EUR/MW/a
+        retrofit_capital_cost = retrofit_config.get("capital_cost")
+        assert retrofit_capital_cost is not None, (
+            "retrofit_to_phs.capital_cost must be set in config"
+        )
         phs_efficiency = np.sqrt(costs.at["PHS", "efficiency"])
         retrofit_max_hours = retrofit_config.get("max_hours", None)
 
@@ -913,7 +915,8 @@ def attach_hydro(
         if retrofit_max_hours is None:
             retrofit_max_hours = hydro_max_hours
 
-        n.add("Carrier", "retrofitted PHS")
+        if "retrofitted PHS" not in n.carriers.index:
+            n.add("Carrier", "retrofitted PHS")
 
         n.add(
             "StorageUnit",
