@@ -1144,6 +1144,86 @@ def add_pipe_retrofit_constraint(n):
     n.model.add_constraints(lhs == rhs, name="Link-pipe_retrofit")
 
 
+def add_hydro_phs_retrofit_constraint(n):
+    """
+    Add binary constraint for hydro-to-PHS retrofit investment decision.
+    For each hydro bus, a binary variable z determines whether the
+    retrofitted PHS replaces the hydro (z=1) or not (z=0).
+    Constraints:
+        p_nom_retrofit == z * p_nom_original   (build full or nothing)
+        p_nom_hydro == (1-z) * p_nom_original   (deactivate hydro when retrofitted)
+    """
+    retrofit_i = n.storage_units.query(
+        'carrier == "retrofitted PHS" and p_nom_extendable'
+    ).index
+    if retrofit_i.empty:
+        return
+    # Find matching hydro units (retrofit index = hydro index + " retrofitted PHS")
+    hydro_i = n.storage_units.query(
+        'carrier == "hydro" and p_nom_extendable'
+    ).index
+    # Only consider hydro units that have a corresponding retrofit unit
+    hydro_i = hydro_i[hydro_i.isin(
+        retrofit_i.str.replace(" retrofitted PHS", "")
+    )]
+    if hydro_i.empty:
+        return
+    logger.info(
+        f"Adding binary hydro-to-PHS retrofit constraint "
+        f"for {len(retrofit_i)} units"
+    )
+    p_nom_original = n.storage_units.loc[retrofit_i, "p_nom_max"]
+    # Add binary decision variable: z=1 means retrofit
+    z = n.model.add_variables(
+        binary=True,
+        coords=[retrofit_i],
+        name="hydro_phs_retrofit_decision"
+    )
+    # Get p_nom variables for retrofit and hydro units
+    if PYPSA_V1:
+        p_nom_retrofit = n.model["StorageUnit-p_nom"].sel(name=retrofit_i)
+        p_nom_hydro    = n.model["StorageUnit-p_nom"].sel(name=hydro_i)
+        # Realign hydro coords to retrofit coords so z can multiply cleanly
+        p_nom_hydro    = p_nom_hydro.assign_coords(name=retrofit_i.values)
+    else:
+        p_nom_retrofit = n.model["StorageUnit-p_nom"].sel(
+            **{"StorageUnit-ext": retrofit_i}
+        )
+        p_nom_hydro    = n.model["StorageUnit-p_nom"].sel(
+            **{"StorageUnit-ext": hydro_i}
+        )
+        # Realign hydro coords to retrofit coords so z can multiply cleanly
+        p_nom_hydro    = p_nom_hydro.assign_coords(
+            {"StorageUnit-ext": retrofit_i.values}
+        )
+    # Align coordinates of p_nom_original for constraints
+    if not PYPSA_V1:
+        p_nom_original = p_nom_original.rename_axis("StorageUnit-ext")
+    # Retrofit: p_nom_retrofit == z * p_nom_original
+    n.model.add_constraints(
+        p_nom_retrofit <= z * p_nom_original,
+        name="StorageUnit-hydro_retrofit_upper"
+    )
+    n.model.add_constraints(
+        p_nom_retrofit >= z * p_nom_original,
+        name="StorageUnit-hydro_retrofit_lower"
+    )
+    # Capacity conservation: p_nom_hydro == (1 - z) * p_nom_original
+    # Re-index p_nom_orig_hydro to retrofit_i so it aligns with z
+    p_nom_orig_hydro = n.storage_units.loc[hydro_i, "p_nom_max"]
+    p_nom_orig_hydro.index = retrofit_i  # Index-Angleichung an z
+    if not PYPSA_V1:
+        p_nom_orig_hydro = p_nom_orig_hydro.rename_axis("StorageUnit-ext")
+    n.model.add_constraints(
+        p_nom_hydro <= (1 - z) * p_nom_orig_hydro,
+        name="StorageUnit-hydro_capacity_conservation_upper"
+    )
+    n.model.add_constraints(
+        p_nom_hydro >= (1 - z) * p_nom_orig_hydro,
+        name="StorageUnit-hydro_capacity_conservation_lower"
+    )
+
+
 def add_flexible_egs_constraint(n):
     """
     Upper bounds the charging capacity of the geothermal reservoir according to
@@ -1275,6 +1355,7 @@ def extra_functionality(
     add_battery_constraints(n)
     add_lossy_bidirectional_link_constraints(n)
     add_pipe_retrofit_constraint(n)
+    add_hydro_phs_retrofit_constraint(n)
     if n._multi_invest:
         add_carbon_constraint(n, snapshots)
         add_carbon_budget_constraint(n, snapshots)
