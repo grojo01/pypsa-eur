@@ -1223,6 +1223,23 @@ def add_hydro_phs_retrofit_constraint(n):
         name="StorageUnit-hydro_capacity_conservation_lower"
     )
 
+    # Aggregate cap: limit total retrofitted capacity to max_share of total hydro
+    retrofit_config = n.config.get("renewable", {}).get("hydro", {}).get(
+        "retrofit_to_phs", {}
+    )
+    max_share = retrofit_config.get("max_share", 1.0)
+    if max_share < 1.0:
+        total_hydro_capacity = p_nom_original.sum()
+        lhs = (z * p_nom_original).sum()
+        rhs = max_share * total_hydro_capacity
+        n.model.add_constraints(
+            lhs <= rhs,
+            name="StorageUnit-hydro_retrofit_max_share"
+        )
+        logger.info(
+            f"Limiting hydro-to-PHS retrofit to max {max_share*100:.0f}% "
+            f"of total hydro capacity ({total_hydro_capacity:.0f} MW)"
+        )
 
 def add_flexible_egs_constraint(n):
     """
