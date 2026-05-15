@@ -110,7 +110,16 @@ def add_brownfield(
         c.static[f"{attr}_nom"] = c.static[f"{attr}_nom_opt"]
         c.static[f"{attr}_nom_extendable"] = False
 
-        n.add(c.name, c.static.index, **c.static)
+        existing = n.components[c.name].static.index
+        to_add = c.static.index.difference(existing)
+        if to_add.empty:
+            logger.debug(
+                f"Skipping brownfield {c.name} assets that already exist in network: "
+                f"{len(c.static)} indices"
+            )
+            continue
+
+        n.add(c.name, to_add, **c.static.loc[to_add])
 
         # copy time-dependent
         selection = n.component_attrs[c.name].type.str.contains(
@@ -118,7 +127,7 @@ def add_brownfield(
         ) & n.component_attrs[c.name].status.str.contains("Input")
         for tattr in n.component_attrs[c.name].index[selection]:
             # TODO: Needs to be rewritten to
-            n._import_series_from_df(c.dynamic[tattr], c.name, tattr)
+            n._import_series_from_df(c.dynamic[tattr].loc[:, to_add], c.name, tattr)
 
     # deal with gas network
     if h2_retrofit:
