@@ -45,6 +45,7 @@ from scripts._helpers import (
     get,
     set_scenario_config,
 )
+from scripts.hydro_pumping import add_hydro_pumping_constraint
 
 logger = logging.getLogger(__name__)
 
@@ -1298,6 +1299,8 @@ def extra_functionality(
 
     if config["sector"]["imports"]["enable"]:
         add_import_limit_constraint(n, snapshots)
+
+    add_hydro_pumping_constraint(n)
 
     if n.params.custom_extra_functionality:
         source_path = n.params.custom_extra_functionality

@@ -44,6 +44,10 @@ def add_hydro_pumping(n: pypsa.Network, config: dict, costs: pd.DataFrame) -> No
       efficiency from `costs`, and ``capital_cost`` = `config["capital_cost"]`
       (EUR/MW/a) if `config["total_capacity"]` is null, else 0.
 
+    If `config["total_capacity"]` (MW) is set, a GlobalConstraint row
+    ``hydro pump total capacity`` is added as placeholder for the constraint
+    from `add_hydro_pumping_constraint`.
+
     Only static StorageUnit attributes are taken over; `attach_hydro` sets
     no time-varying ones besides ``inflow``.
     """
@@ -118,3 +122,42 @@ def add_hydro_pumping(n: pypsa.Network, config: dict, costs: pd.DataFrame) -> No
         capital_cost=pump_cost,
     )
     n.remove("StorageUnit", names)
+
+    if config["total_capacity"] is not None:
+        if config["total_capacity"] > su.p_nom.sum():
+            raise ValueError(
+                f"hydro_pumping: `total_capacity` of {config['total_capacity']} MW "
+                f"exceeds the {su.p_nom.sum():.0f} MW of `hydro` turbines in "
+                f"{config['countries']}."
+            )
+        n.add(
+            "GlobalConstraint",
+            "hydro pump total capacity",
+            type="hydro_pumping",
+            carrier_attribute="hydro pump",
+            sense="==",
+            constant=config["total_capacity"],
+        )
+
+
+def add_hydro_pumping_constraint(n: pypsa.Network) -> None:
+    """
+    Fix the summed ``p_nom`` of all ``hydro pump`` links to `total_capacity`.
+
+    Called from `extra_functionality` if `add_hydro_pumping` added the
+    GlobalConstraint row. PyPSA's ``tech_capacity_expansion_limit`` is not
+    used because PyPSA 1.2.4 skips it without investment periods. The model
+    constraint carries the row's name, so PyPSA stores its shadow price in
+    ``n.global_constraints.mu``: the change in total system cost per
+    additional MW of pumping capacity (EUR/MW/a for one full year). It is
+    negative while more pumping lowers the cost.
+    """
+    name = "hydro pump total capacity"
+    if name not in n.global_constraints.index:
+        return
+    pumps = n.links.index[n.links.carrier == "hydro pump"]
+    lhs = n.model["Link-p_nom"].sel(name=pumps).sum()
+    n.model.add_constraints(
+        lhs == n.global_constraints.at[name, "constant"],
+        name=f"GlobalConstraint-{name}",
+    )
