@@ -42,7 +42,8 @@ def add_hydro_pumping(n: pypsa.Network, config: dict, costs: pd.DataFrame) -> No
     - Link ``{name} pump`` AC -> reservoir, extendable up to P (MW), with
       ``efficiency`` = eta_RT / eta_T, where eta_RT is the PHS round-trip
       efficiency from `costs`, and ``capital_cost`` = `config["capital_cost"]`
-      (EUR/MW/a) if `config["total_capacity"]` is null, else 0.
+      (EUR/MW/a), which the config validation keeps at 0 if
+      `config["total_capacity"]` is set.
 
     If `config["total_capacity"]` (MW) is set, a GlobalConstraint row
     ``hydro pump total capacity`` is added as placeholder for the constraint
@@ -64,7 +65,6 @@ def add_hydro_pumping(n: pypsa.Network, config: dict, costs: pd.DataFrame) -> No
     names = su.index
     eff_turbine = su.efficiency_dispatch
     eff_pump = costs.at["PHS", "efficiency"] / eff_turbine
-    pump_cost = config["capital_cost"] if config["total_capacity"] is None else 0.0
     logger.info(
         f"Adding hydro pumping to {len(su)} reservoirs in {config['countries']}."
     )
@@ -119,7 +119,7 @@ def add_hydro_pumping(n: pypsa.Network, config: dict, costs: pd.DataFrame) -> No
         p_nom_extendable=True,
         p_nom_max=su.p_nom.values,
         efficiency=eff_pump.values,
-        capital_cost=pump_cost,
+        capital_cost=config["capital_cost"],
     )
     n.remove("StorageUnit", names)
 

@@ -2590,11 +2590,11 @@
             }
           ],
           "default": null,
-          "description": "Total pumping capacity in MW over all `hydro` clusters in `countries`. If set, it is fixed and `capital_cost` is not used; if null, the optimiser chooses it."
+          "description": "Total pumping capacity in MW over all `hydro` clusters in `countries`. If set, it is fixed and `capital_cost` must be 0; if null, the optimiser chooses it."
         },
         "capital_cost": {
           "default": 0.0,
-          "description": "Annualised capital cost of pumping capacity in EUR/MW/a. Only used if `total_capacity` is null.",
+          "description": "Annualised capital cost of pumping capacity in EUR/MW/a. Only allowed if `total_capacity` is null. With 0, pumping is free and the optimiser builds as much as is useful.",
           "minimum": 0,
           "type": "number"
         }
@@ -14396,11 +14396,11 @@
             }
           ],
           "default": null,
-          "description": "Total pumping capacity in MW over all `hydro` clusters in `countries`. If set, it is fixed and `capital_cost` is not used; if null, the optimiser chooses it."
+          "description": "Total pumping capacity in MW over all `hydro` clusters in `countries`. If set, it is fixed and `capital_cost` must be 0; if null, the optimiser chooses it."
         },
         "capital_cost": {
           "default": 0.0,
-          "description": "Annualised capital cost of pumping capacity in EUR/MW/a. Only used if `total_capacity` is null.",
+          "description": "Annualised capital cost of pumping capacity in EUR/MW/a. Only allowed if `total_capacity` is null. With 0, pumping is free and the optimiser builds as much as is useful.",
           "minimum": 0,
           "type": "number"
         }

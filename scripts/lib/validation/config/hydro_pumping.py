@@ -27,12 +27,12 @@ class HydroPumpingConfig(ConfigModel):
     )
     total_capacity: float | None = Field(
         None,
-        description="Total pumping capacity in MW over all `hydro` clusters in `countries`. If set, it is fixed and `capital_cost` is not used; if null, the optimiser chooses it.",
+        description="Total pumping capacity in MW over all `hydro` clusters in `countries`. If set, it is fixed and `capital_cost` must be 0; if null, the optimiser chooses it.",
         ge=0,
     )
     capital_cost: float = Field(
         0.0,
-        description="Annualised capital cost of pumping capacity in EUR/MW/a. Only used if `total_capacity` is null.",
+        description="Annualised capital cost of pumping capacity in EUR/MW/a. Only allowed if `total_capacity` is null. With 0, pumping is free and the optimiser builds as much as is useful.",
         ge=0,
     )
 
@@ -41,6 +41,15 @@ class HydroPumpingConfig(ConfigModel):
         if self.enable and not self.countries:
             raise ValueError(
                 "hydro_pumping: `countries` must not be empty if `enable` is true."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_capital_cost(self):
+        if self.total_capacity is not None and self.capital_cost > 0:
+            raise ValueError(
+                "hydro_pumping: `capital_cost` must be 0 if `total_capacity` is "
+                "set; a fixed capacity is not priced."
             )
         return self
 
