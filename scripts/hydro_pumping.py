@@ -151,13 +151,22 @@ def add_hydro_pumping_constraint(n: pypsa.Network) -> None:
     ``n.global_constraints.mu``: the change in total system cost per
     additional MW of pumping capacity (EUR/MW/a for one full year). It is
     negative while more pumping lowers the cost.
+
+    Pumps with fixed ``p_nom`` count with their capacity. If no pump is
+    extendable, e.g. when the network is solved again after
+    ``fix_optimal_capacities``, the fixed capacities already hold the total
+    and no constraint is added.
     """
     name = "hydro pump total capacity"
     if name not in n.global_constraints.index:
         return
-    pumps = n.links.index[n.links.carrier == "hydro pump"]
-    lhs = n.model["Link-p_nom"].sel(name=pumps).sum()
+    pumps = n.links.query("carrier == 'hydro pump'")
+    ext = pumps.index[pumps.p_nom_extendable]
+    if ext.empty:
+        return
+    fixed = pumps.p_nom[~pumps.p_nom_extendable].sum()
+    lhs = n.model["Link-p_nom"].sel(name=ext).sum()
     n.model.add_constraints(
-        lhs == n.global_constraints.at[name, "constant"],
+        lhs == n.global_constraints.at[name, "constant"] - fixed,
         name=f"GlobalConstraint-{name}",
     )
