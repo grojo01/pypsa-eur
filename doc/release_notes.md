@@ -6,7 +6,7 @@
 <!-- Upcoming Release -->
 <!-- ================= -->
 
-* Fix: Country selections without coast (e.g. `countries: [AT, CH, CZ]`, offshore technologies disabled) run again; `build_nuts3_shapes` and `build_shapes` read the empty offshore shapes as `base_network` does since [#383](https://github.com/PyPSA/pypsa-eur/pull/383).
+* Fix: Landlocked countries run again with offshore technologies disabled. The fix of [#383](https://github.com/PyPSA/pypsa-eur/pull/383) got lost in [#2169](https://github.com/PyPSA/pypsa-eur/pull/2169).
 
 ## PyPSA-Eur v2026.09.0 (25th September 2026)
 
