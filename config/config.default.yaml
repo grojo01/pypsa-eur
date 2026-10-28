@@ -1551,3 +1551,10 @@ overpass_api:
     project_name: "PyPSA-Eur"
     email: "contact@pypsa.org"
     website: "https://github.com/PyPSA/pypsa-eur"
+
+# docs in https://pypsa-eur.readthedocs.io/en/latest/configuration/#hydro_pumping_cf
+hydro_pumping:
+  enable: false
+  countries: []
+  total_capacity:
+  capital_cost: 0.0

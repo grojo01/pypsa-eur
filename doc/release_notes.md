@@ -6,6 +6,9 @@
 <!-- Upcoming Release -->
 <!-- ================= -->
 
+* Fix: Landlocked countries run again with offshore technologies disabled. The fix of [#383](https://github.com/PyPSA/pypsa-eur/pull/383) got lost in [#2169](https://github.com/PyPSA/pypsa-eur/pull/2169).
+* Feature: New config section `hydro_pumping` to add pumping capacity to existing reservoir hydro (carrier `hydro`) in selected `countries`, either with a fixed `total_capacity` in MW or optimised at `capital_cost` in EUR/MW/a. Disabled by default.
+
 ## PyPSA-Eur v2026.09.0 (25th September 2026)
 
 **Streamlined Workflow**
