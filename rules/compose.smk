@@ -242,6 +242,7 @@ rule compose_network:
         ),
         co2_budget=config_provider("co2_budget"),
         adjustments=config_provider("adjustments"),
+        hydro_pumping=config_provider("hydro_pumping"),
     message:
         "Composing network for horizon {wildcards.horizon}"
     script:

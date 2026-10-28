@@ -24,6 +24,7 @@ from scripts.add_electricity import (
     sanitize_locations,
 )
 from scripts.add_existing_baseyear import main as add_existing_capacities
+from scripts.hydro_pumping import add_hydro_pumping
 from scripts.prepare_network import (
     apply_co2_budget_constraints,
     apply_temporal_aggregation,
@@ -79,6 +80,7 @@ if __name__ == "__main__":
     costs = load_costs(snakemake.input.tech_costs)
 
     add_electricity_components(n, inputs, params, costs)
+    add_hydro_pumping(n, params.hydro_pumping, costs)
 
     if sector_mode:
         add_sector_components(n, inputs, params, costs, nyears, current_horizon)
