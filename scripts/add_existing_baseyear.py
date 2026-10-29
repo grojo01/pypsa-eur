@@ -836,7 +836,8 @@ def main(
         solar_rooftop_ratio=params.existing_capacities["solar_rooftop_ratio"],
     )
 
-    if options["heating"]:
+    # sector inputs such as COP profiles only exist with sector coupling
+    if options["enabled"] and options["heating"]:
         add_heating_capacities_installed_before_baseyear(
             n=n,
             costs=costs,
