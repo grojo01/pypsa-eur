@@ -127,6 +127,7 @@ lines:
 sector:
   enabled: false
   transport: false
+  heating: false
   biomass: false
   ammonia: false
   methanol: false
