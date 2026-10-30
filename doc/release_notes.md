@@ -8,6 +8,8 @@
 
 * Fix: Electricity-only runs (`sector: enabled: false`) with `foresight: myopic` or `perfect` no longer fail in `compose_network` on missing `cop_profiles`. Existing heating capacities are now only added if `sector: enabled` and `sector: heating` are both true.
 
+* Fix: In electricity-only runs (`sector: enabled: false`) with `foresight: myopic` or `perfect`, `add_existing_baseyear` no longer adds existing conventional power plants as links. Their fuel buses do not exist without sector coupling, so solid biomass CHP and, after `add_brownfield`, also coal and nuclear plants ran on free fuel and without CO2 emissions. The plants are already attached as generators by `add_electricity`, as in overnight runs.
+
 * Fix: With `run: shared_resources: policy: base`, `compose_network` now reads processed costs and the previous perfect-foresight network from the run's own resources folder, not the shared one ([#2379](https://github.com/PyPSA/pypsa-eur/pull/2379)).
 
 * Fix: `lines: types` must now define a line type for the 380 kV level; the config validation fails early with a clear message instead of the workflow failing later ([#2166](https://github.com/PyPSA/pypsa-eur/issues/2166)).

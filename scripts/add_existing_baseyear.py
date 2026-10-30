@@ -166,6 +166,7 @@ def add_power_capacities_installed_before_baseyear(
     renewable_carriers: list[str],
     spatial: SimpleNamespace,
     solar_rooftop_ratio: float = 0.5,
+    conventional: bool = True,
 ) -> None:
     """
     Add power generation capacities installed before base year.
@@ -194,6 +195,12 @@ def add_power_capacities_installed_before_baseyear(
         Container of spatial data
     solar_rooftop_ratio: float
         Ratio of solar capacity to assign to rooftop vs utility-scale (between 0 and 1)
+    conventional: bool
+        If True (sector-coupled networks), existing conventional power plants
+        are added as links from their fuel buses. If False (electricity-only
+        networks), no conventional plants are added here, because
+        `add_electricity` already attaches the plants as generators.
+        Existing renewables are added in both cases.
     """
     logger.debug(f"Adding power capacities installed before {baseyear}")
 
@@ -232,6 +239,8 @@ def add_power_capacities_installed_before_baseyear(
     df_agg.drop(df_agg.index[df_agg.Fueltype.isin(fueltype_to_drop)], inplace=True)
     df_agg.drop(df_agg.index[df_agg.Technology.isin(technology_to_drop)], inplace=True)
     df_agg.Fueltype = df_agg.Fueltype.map(rename_fuel)
+    if not conventional:
+        df_agg.drop(df_agg.index, inplace=True)
 
     # Fill missing DateIn
     df_agg["DateIn"] = df_agg.groupby("Fueltype")["DateIn"].transform(
@@ -834,6 +843,7 @@ def main(
         renewable_carriers=renewable_carriers,
         spatial=spatial,
         solar_rooftop_ratio=params.existing_capacities["solar_rooftop_ratio"],
+        conventional=options["enabled"],
     )
 
     # sector inputs such as COP profiles only exist with sector coupling
