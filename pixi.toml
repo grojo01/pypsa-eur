@@ -163,6 +163,7 @@ tsam = ">=2.3.1"
 
 integration-tests = """
     snakemake -call --configfile config/test/config.electricity.yaml &&
+    snakemake -call solve_operations_networks --configfile config/test/config.rolling-horizon.yaml &&
     snakemake -call --configfile config/test/config.overnight.yaml &&
     snakemake -call --configfile config/test/config.myopic.yaml &&
     snakemake -call --configfile config/test/config.perfect.yaml &&
@@ -179,6 +180,7 @@ integration-tests-streamlined = """
 """
 clean-tests = """
     snakemake -call --configfile config/test/config.electricity.yaml --delete-all-output ;
+    snakemake -call solve_operations_networks --configfile config/test/config.rolling-horizon.yaml --delete-all-output ;
     snakemake -call --configfile config/test/config.overnight.yaml --delete-all-output ;
     snakemake -call --configfile config/test/config.myopic.yaml --delete-all-output ;
     snakemake -call --configfile config/test/config.perfect.yaml --delete-all-output ;
