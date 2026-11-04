@@ -210,7 +210,7 @@ class _OperationsConfig(BaseModel):
 
     rolling_horizon: bool = Field(
         False,
-        description="Whether rule `solve_operations_network` re-dispatches the fixed-capacity network in a rolling horizon manner, splitting the snapshots into slices of size `horizon` which are solved consecutively. Independent from `solving.options.rolling_horizon`, which controls rule `solve_network`.",
+        description="Whether rule `solve_operations_network` re-dispatches the fixed-capacity network in a rolling horizon manner, splitting the snapshots into slices of size `horizon` which are solved consecutively. Stores and storage units start from their level before the first snapshot in the solved network, and a failed slice raises an error. Without foresight beyond a slice, stored energy has no value at the end of a slice, so a slice may empty its storage and the next one become infeasible (e.g. with a CO2 limit of zero). Annual global constraints such as `co2_budget` apply to every slice in full, not to the sum over the slices. Independent from `solving.options.rolling_horizon`, which controls rule `solve_network`.",
     )
     horizon: int = Field(
         365,
