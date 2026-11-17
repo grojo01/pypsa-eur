@@ -5,6 +5,7 @@
 
 <!-- Upcoming Release -->
 <!-- ================= -->
+* Fix: Hydro reservoirs now dispatch with an efficiency of 1 instead of the hydro efficiency from technology-data (0.9). Their inflow is scaled to EIA generation, which is already net generation after accounting for turbine losses, so reservoir generation was about 10 % below EIA ([#2391](https://github.com/PyPSA/pypsa-eur/issues/2391)).
 
 * Fix: With `solving: operations: rolling_horizon`, `solve_operations_network` now starts stores and storage units from their levels in the solved network instead of empty, raises an error when a slice fails, and stores the objective summed over all slices. It warns that annual global constraints apply to every slice in full.
 
