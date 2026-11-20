@@ -35,6 +35,12 @@ class HydroPumpingConfig(ConfigModel):
         description="Annualised capital cost of pumping capacity in EUR/MW/a. Only allowed if `total_capacity` is null. With 0, pumping is free and the optimiser builds as much as is useful.",
         ge=0,
     )
+    lower_reservoir_share: float = Field(
+        1.0,
+        description="Volume of the lower reservoir as a share of the upper reservoir. The lower reservoir is filled by the turbines and the spillage of the upper one and supplies the pumps.",
+        gt=0,
+        le=1,
+    )
 
     @model_validator(mode="after")
     def check_countries(self):

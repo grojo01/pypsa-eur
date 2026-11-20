@@ -2597,6 +2597,13 @@
           "description": "Annualised capital cost of pumping capacity in EUR/MW/a. Only allowed if `total_capacity` is null. With 0, pumping is free and the optimiser builds as much as is useful.",
           "minimum": 0,
           "type": "number"
+        },
+        "lower_reservoir_share": {
+          "default": 1.0,
+          "description": "Volume of the lower reservoir as a share of the upper reservoir. The lower reservoir is filled by the turbines and the spillage of the upper one and supplies the pumps.",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "type": "number"
         }
       }
     },
@@ -14402,6 +14409,13 @@
           "default": 0.0,
           "description": "Annualised capital cost of pumping capacity in EUR/MW/a. Only allowed if `total_capacity` is null. With 0, pumping is free and the optimiser builds as much as is useful.",
           "minimum": 0,
+          "type": "number"
+        },
+        "lower_reservoir_share": {
+          "default": 1.0,
+          "description": "Volume of the lower reservoir as a share of the upper reservoir. The lower reservoir is filled by the turbines and the spillage of the upper one and supplies the pumps.",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
           "type": "number"
         }
       }
