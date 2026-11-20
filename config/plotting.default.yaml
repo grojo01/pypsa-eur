@@ -381,6 +381,9 @@ plotting:
     hydro inflow: "Hydro Inflow"
     hydro turbine: "Hydro Turbine"
     hydro pump: "Hydro Pump"
+    hydro lower reservoir: "Hydro Lower Reservoir"
+    hydro spill: "Hydro Spill"
+    hydro release: "Hydro Release"
     battery: "Battery Storage"
     H2: "Hydrogen Storage"
     li-ion: "Lithium-Ion Storage"
@@ -416,6 +419,9 @@ plotting:
     hydro inflow: '#7fd1c7'
     hydro turbine: '#1f6b62'
     hydro pump: '#51dbcc'
+    hydro lower reservoir: '#5f9ea0'
+    hydro spill: '#a6dcd5'
+    hydro release: '#c2e8e3'
     ror: '#3dbfb0'
     run of river: '#3dbfb0'
     hydroelectricity: '#298c81'
