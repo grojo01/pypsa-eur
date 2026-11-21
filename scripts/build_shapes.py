@@ -2,8 +2,12 @@
 #
 # SPDX-License-Identifier: MIT
 """
-Creates GIS shape files of country boundaries and the Europe bounding shape,
-derived from NUTS3 regions and offshore EEZ shapes.
+Creates the country shapes and a single bounding shape of the modelled area.
+
+Country shapes are the union of each country's NUTS3 regions. The Europe shape is
+the exterior of the union of all country and offshore EEZ shapes, keeping only the
+largest polygon and filling holes. Both are used by the base network and the land
+availability rules.
 """
 
 import logging
@@ -18,7 +22,9 @@ from scripts._helpers import configure_logging, set_scenario_config
 logger = logging.getLogger(__name__)
 
 
-def country_cover(country_shapes, eez_shapes=None):
+def country_cover(
+    country_shapes: gpd.GeoSeries, eez_shapes: gpd.GeoSeries | None = None
+) -> Polygon:
     shapes = country_shapes
     if eez_shapes is not None:
         shapes = pd.concat([shapes, eez_shapes])
