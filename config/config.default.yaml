@@ -1558,3 +1558,4 @@ hydro_pumping:
   countries: []
   total_capacity:
   capital_cost: 0.0
+  lower_reservoir_share: 1.0

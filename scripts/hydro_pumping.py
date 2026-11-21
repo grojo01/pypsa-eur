@@ -6,9 +6,11 @@
 Add extendable pumping capacity to existing reservoir hydro.
 
 In the countries listed in `hydro_pumping: countries`, each `hydro`
-StorageUnit is replaced by an equivalent store-link topology: a reservoir
-bus and store, an inflow generator, a turbine link and an extendable pump
-link. The StorageUnit's attributes are taken over unchanged, so without
+StorageUnit is replaced by a store-link topology: an upper reservoir
+fed by the inflow, a turbine link, an extendable pump link and a lower
+reservoir. The lower reservoir is filled by the turbines and the spillage
+of the upper one and supplies the pumps; a free release lets water leave
+it. The StorageUnit's attributes are taken over unchanged, so without
 pumping capacity the optimisation problem is the same. Everywhere else the
 network is left untouched.
 """
@@ -28,22 +30,39 @@ def add_hydro_pumping(n: pypsa.Network, config: dict, costs: pd.DataFrame) -> No
     Replace `hydro` StorageUnits in `config["countries"]` by store and links.
 
     Per StorageUnit with power P (MW), turbine efficiency eta_T
-    (`efficiency_dispatch`) and `max_hours` h:
+    (`efficiency_dispatch`), `max_hours` h and the share s =
+    `config["lower_reservoir_share"]`:
 
     - Store ``{name} reservoir`` with ``e_nom`` = h * P (MWh), cyclic.
-    - Generator ``{name} inflow`` with ``p_nom`` = 1 MW and ``p_max_pu`` =
-      inflow in MW. Curtailing it is spillage. With ``p_nom`` = 1 MW the
-      solver option ``clip_p_max_pu`` clips the inflow exactly as it clips
-      StorageUnit inflow.
+    - Generator ``{name} inflow`` with ``p_nom`` = 1 MW and ``p_min_pu`` =
+      ``p_max_pu`` = inflow in MW, so the inflow is fed in fully. With
+      ``p_nom`` = 1 MW the solver option ``clip_p_max_pu`` clips the inflow
+      exactly as it clips StorageUnit inflow.
+    - Store ``{name} lower reservoir`` with ``e_nom`` = s * h * P (MWh),
+      cyclic.
+    - Link ``{name} spill`` reservoir -> lower reservoir with ``p_nom`` =
+      1 MW and ``p_max_pu`` = inflow, so spillage is bounded by the inflow
+      as the curtailment of the StorageUnit inflow is.
     - Link ``{name} turbine`` reservoir -> AC with ``p_nom`` = P / eta_T
       (bus0 side), ``efficiency`` = eta_T, ``marginal_cost`` and
       ``capital_cost`` (EUR/MW/a) scaled by eta_T to bus0, ``p_max_pu`` as
-      the StorageUnit's.
+      the StorageUnit's. ``bus2`` = lower reservoir with ``efficiency2`` =
+      1: the turbined water reaches the lower reservoir.
     - Link ``{name} pump`` AC -> reservoir, extendable up to P (MW), with
       ``efficiency`` = eta_RT / eta_T, where eta_RT is the PHS round-trip
       efficiency from `costs`, and ``capital_cost`` = `config["capital_cost"]`
       (EUR/MW/a), which the config validation keeps at 0 if
-      `config["total_capacity"]` is set.
+      `config["total_capacity"]` is set. ``bus2`` = lower reservoir with
+      ``efficiency2`` = -eta_RT / eta_T: per MWh arriving in the reservoir,
+      one MWh leaves the lower reservoir. ``bus0`` stays AC, so ``p_nom``
+      remains in MW of electricity.
+    - Generator ``{name} release`` on the lower reservoir with ``p_min_pu``
+      = -1, ``p_max_pu`` = 0 and ``p_nom`` = P / eta_T + max inflow (MW),
+      at no cost: water leaves the lower reservoir to the river, so a full
+      lower reservoir never blocks the turbine or the spillage.
+
+    All reservoir quantities are in the unit of the StorageUnit's state of
+    charge, the electricity value of the water.
 
     If `config["total_capacity"]` (MW) is set, a GlobalConstraint row
     ``hydro pump total capacity`` is added as placeholder for the constraint
@@ -70,9 +89,20 @@ def add_hydro_pumping(n: pypsa.Network, config: dict, costs: pd.DataFrame) -> No
     )
 
     add_missing_carriers(
-        n, ["hydro reservoir", "hydro inflow", "hydro turbine", "hydro pump"]
+        n,
+        [
+            "hydro reservoir",
+            "hydro inflow",
+            "hydro turbine",
+            "hydro pump",
+            "hydro lower reservoir",
+            "hydro spill",
+            "hydro release",
+        ],
     )
     reservoir = names + " reservoir"
+    lower = names + " lower reservoir"
+    inflow = n.storage_units_t.inflow[names]
     n.add(
         "Bus",
         reservoir,
@@ -96,17 +126,55 @@ def add_hydro_pumping(n: pypsa.Network, config: dict, costs: pd.DataFrame) -> No
         bus=reservoir,
         carrier="hydro inflow",
         p_nom=1.0,
-        p_max_pu=n.storage_units_t.inflow[names].set_axis(names + " inflow", axis=1),
+        p_min_pu=inflow.set_axis(names + " inflow", axis=1),
+        p_max_pu=inflow.set_axis(names + " inflow", axis=1),
+    )
+    n.add(
+        "Bus",
+        lower,
+        carrier="hydro lower reservoir",
+        location=su.bus.values,
+        x=n.buses.x[su.bus].values,
+        y=n.buses.y[su.bus].values,
+        country=n.buses.country[su.bus].values,
+    )
+    n.add(
+        "Store",
+        lower,
+        bus=lower,
+        carrier="hydro lower reservoir",
+        e_nom=(config["lower_reservoir_share"] * su.max_hours * su.p_nom).values,
+        e_cyclic=True,
+    )
+    n.add(
+        "Link",
+        names + " spill",
+        bus0=reservoir,
+        bus1=lower,
+        carrier="hydro spill",
+        p_nom=1.0,
+        p_max_pu=inflow.set_axis(names + " spill", axis=1),
+    )
+    n.add(
+        "Generator",
+        names + " release",
+        bus=lower,
+        carrier="hydro release",
+        p_nom=(su.p_nom / eff_turbine + inflow.max()).values,
+        p_min_pu=-1.0,
+        p_max_pu=0.0,
     )
     n.add(
         "Link",
         names + " turbine",
         bus0=reservoir,
         bus1=su.bus.values,
+        bus2=lower,
         carrier="hydro turbine",
         p_nom=(su.p_nom / eff_turbine).values,
         p_max_pu=su.p_max_pu.values,
         efficiency=eff_turbine.values,
+        efficiency2=1.0,
         marginal_cost=(su.marginal_cost * eff_turbine).values,
         capital_cost=(su.capital_cost * eff_turbine).values,
     )
@@ -115,10 +183,12 @@ def add_hydro_pumping(n: pypsa.Network, config: dict, costs: pd.DataFrame) -> No
         names + " pump",
         bus0=su.bus.values,
         bus1=reservoir,
+        bus2=lower,
         carrier="hydro pump",
         p_nom_extendable=True,
         p_nom_max=su.p_nom.values,
         efficiency=eff_pump.values,
+        efficiency2=-eff_pump.values,
         capital_cost=config["capital_cost"],
     )
     n.remove("StorageUnit", names)
